@@ -1,0 +1,3 @@
+[submodule "Assets/OOGB"]
+	path = Assets/OOGB
+	url = git@github.com:oniongames/OnlineGameBase.git
