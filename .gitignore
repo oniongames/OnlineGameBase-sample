@@ -54,5 +54,5 @@ Desktop.ini
 [Aa]ssets/Plugins/Editor/JetBrains*
 
 # Local Codex/agent working notes
-.codex/
+# .codex/
 .agents/
