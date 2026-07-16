@@ -17,7 +17,7 @@ Keep OOGB code and tests inside `Assets/OOGB`. The initial architecture is pure 
   `Unity -batchmode -projectPath . -runTests -testPlatform editmode -quit -logFile Logs/editmode.log`
 - Run play-mode tests:
   `Unity -batchmode -projectPath . -runTests -testPlatform playmode -quit -logFile Logs/playmode.log`
-- Check recent Unity logs with `~/bin/unitylog.sh`; check recent Unity error logs with `~/bin/unitylog_failed.sh`.
+- Check recent Unity logs with `~/bin/unitylog.sh`; check recent Unity error logs with `~/bin/unitylog_failed.sh`. Both scripts default to the last 1024 lines and accept a line-count argument, for example `~/bin/unitylog_failed.sh 2000`. Prefer `unitylog_failed.sh` when only compact Console-like error summaries are needed.
 
 ## Coding Style & Naming Conventions
 

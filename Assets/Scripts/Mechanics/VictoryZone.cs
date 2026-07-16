@@ -1,4 +1,5 @@
 using Platformer.Gameplay;
+using Platformer.Multiplayer;
 using UnityEngine;
 using static Platformer.Core.Simulation;
 
@@ -14,6 +15,9 @@ namespace Platformer.Mechanics
             var p = collider.gameObject.GetComponent<PlayerController>();
             if (p != null)
             {
+                if (OogbPlatformerMultiplayerController.TryHandleVictory(p))
+                    return;
+
                 var ev = Schedule<PlayerEnteredVictoryZone>();
                 ev.victoryZone = this;
             }

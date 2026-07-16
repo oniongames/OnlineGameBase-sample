@@ -1,3 +1,4 @@
+using System;
 using Platformer.Core;
 using Platformer.Mechanics;
 using Platformer.Model;
@@ -10,21 +11,28 @@ namespace Platformer.Gameplay
     public class PlayerSpawn : Simulation.Event<PlayerSpawn>
     {
         PlatformerModel model = Simulation.GetModel<PlatformerModel>();
+        [NonSerialized]
+        internal PlayerController player;
 
         public override void Execute()
         {
-            var player = model.player;
-            player.collider2d.enabled = true;
-            player.controlEnabled = false;
-            if (player.audioSource && player.respawnAudio)
-                player.audioSource.PlayOneShot(player.respawnAudio);
-            player.health.Increment();
-            player.Teleport(model.spawnPoint.transform.position);
-            player.jumpState = PlayerController.JumpState.Grounded;
-            player.animator.SetBool("dead", false);
-            model.virtualCamera.Follow = player.transform;
-            model.virtualCamera.LookAt = player.transform;
+            var target = player == null ? model.player : player;
+            target.collider2d.enabled = true;
+            target.controlEnabled = false;
+            if (target.audioSource && target.respawnAudio)
+                target.audioSource.PlayOneShot(target.respawnAudio);
+            target.health.Increment();
+            target.Teleport(model.spawnPoint.transform.position);
+            target.jumpState = PlayerController.JumpState.Grounded;
+            target.animator.SetBool("dead", false);
+            model.virtualCamera.Follow = target.transform;
+            model.virtualCamera.LookAt = target.transform;
             Simulation.Schedule<EnablePlayerInput>(2f);
+        }
+
+        internal override void Cleanup()
+        {
+            player = null;
         }
     }
 }

@@ -1,6 +1,6 @@
+using System;
 using Platformer.Core;
 using Platformer.Mechanics;
-using Platformer.Model;
 
 namespace Platformer.Gameplay
 {
@@ -11,12 +11,18 @@ namespace Platformer.Gameplay
     public class PlayerEnteredDeathZone : Simulation.Event<PlayerEnteredDeathZone>
     {
         public DeathZone deathzone;
-
-        PlatformerModel model = Simulation.GetModel<PlatformerModel>();
+        [NonSerialized]
+        internal PlayerController player;
 
         public override void Execute()
         {
-            Simulation.Schedule<PlayerDeath>(0);
+            Simulation.Schedule<PlayerDeath>(0).player = player;
+        }
+
+        internal override void Cleanup()
+        {
+            deathzone = null;
+            player = null;
         }
     }
 }

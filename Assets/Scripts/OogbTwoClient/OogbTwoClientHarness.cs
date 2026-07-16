@@ -42,6 +42,7 @@ public sealed class OogbTwoClientHarness : MonoBehaviour
 
     private void Awake()
     {
+        Application.runInBackground = true;
         ResetInMemoryHarness();
     }
 
@@ -390,6 +391,7 @@ public sealed class OogbTwoClientHarness : MonoBehaviour
 
         localUdpSession.SetLocalReady();
         AddLog(localUdpSession.LocalPeerId + " ready sent");
+        PollSessions();
     }
 
     private void UdpOwnerStart()
@@ -405,6 +407,7 @@ public sealed class OogbTwoClientHarness : MonoBehaviour
 
         var started = localUdpSession.TryStart();
         AddLog("Client A TryStart: " + started);
+        PollSessions();
     }
 
     private void SubmitBothInMemoryInputsAndAdvance()

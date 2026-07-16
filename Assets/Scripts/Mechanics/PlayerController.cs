@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using Platformer.Gameplay;
 using static Platformer.Core.Simulation;
@@ -34,9 +35,21 @@ namespace Platformer.Mechanics
         /*internal new*/ public AudioSource audioSource;
         public Health health;
         public bool controlEnabled = true;
+        [NonSerialized]
+        public bool useExternalInput;
 
         bool jump;
         Vector2 move;
+        float externalHorizontal;
+        bool externalJumpPressed;
+        bool externalJumpReleased;
+        bool snapshotPlayback;
+        bool snapshotPlaybackImmediate;
+        Vector2 snapshotPlaybackTarget;
+        Vector2 snapshotPlaybackVelocity;
+        JumpState snapshotPlaybackJumpState;
+        bool snapshotPlaybackControlEnabled;
+        bool snapshotPlaybackFacingLeft;
         SpriteRenderer spriteRenderer;
         internal Animator animator;
         readonly PlatformerModel model = Simulation.GetModel<PlatformerModel>();
@@ -45,6 +58,7 @@ namespace Platformer.Mechanics
         private InputAction m_JumpAction;
 
         public Bounds Bounds => collider2d.bounds;
+        public bool FacingLeft => spriteRenderer != null && spriteRenderer.flipX;
 
         void Awake()
         {
@@ -63,15 +77,38 @@ namespace Platformer.Mechanics
 
         protected override void Update()
         {
+            if (snapshotPlayback)
+            {
+                UpdateSnapshotPlayback();
+                return;
+            }
+
             if (controlEnabled)
             {
-                move.x = m_MoveAction.ReadValue<Vector2>().x;
-                if (jumpState == JumpState.Grounded && m_JumpAction.WasPressedThisFrame())
-                    jumpState = JumpState.PrepareToJump;
-                else if (m_JumpAction.WasReleasedThisFrame())
+                if (useExternalInput)
                 {
-                    stopJump = true;
-                    Schedule<PlayerStopJump>().player = this;
+                    move.x = externalHorizontal;
+                    if (jumpState == JumpState.Grounded && externalJumpPressed)
+                        jumpState = JumpState.PrepareToJump;
+                    else if (externalJumpReleased)
+                    {
+                        stopJump = true;
+                        Schedule<PlayerStopJump>().player = this;
+                    }
+
+                    externalJumpPressed = false;
+                    externalJumpReleased = false;
+                }
+                else
+                {
+                    move.x = m_MoveAction.ReadValue<Vector2>().x;
+                    if (jumpState == JumpState.Grounded && m_JumpAction.WasPressedThisFrame())
+                        jumpState = JumpState.PrepareToJump;
+                    else if (m_JumpAction.WasReleasedThisFrame())
+                    {
+                        stopJump = true;
+                        Schedule<PlayerStopJump>().player = this;
+                    }
                 }
             }
             else
@@ -137,6 +174,77 @@ namespace Platformer.Mechanics
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
 
             targetVelocity = move * maxSpeed;
+        }
+
+        public void SetExternalInput(float horizontal, bool jumpPressed, bool jumpReleased)
+        {
+            externalHorizontal = Mathf.Clamp(horizontal, -1f, 1f);
+            externalJumpPressed |= jumpPressed;
+            externalJumpReleased |= jumpReleased;
+        }
+
+        public void ClearExternalInput()
+        {
+            externalHorizontal = 0f;
+            externalJumpPressed = false;
+            externalJumpReleased = false;
+        }
+
+        public void SetSnapshotPlayback(bool enabled)
+        {
+            if (snapshotPlayback == enabled)
+                return;
+
+            snapshotPlayback = enabled;
+            suspendKinematicSimulation = enabled;
+            snapshotPlaybackImmediate = enabled;
+
+            if (!enabled)
+                ClearExternalInput();
+        }
+
+        public void ApplySnapshotPlaybackFrame(Vector2 position, Vector2 replayVelocity, int replayJumpState, bool replayControlEnabled, bool replayFacingLeft)
+        {
+            if (!snapshotPlayback)
+                SetSnapshotPlayback(true);
+
+            snapshotPlaybackTarget = position;
+            snapshotPlaybackVelocity = replayVelocity;
+            snapshotPlaybackJumpState = ClampJumpState(replayJumpState);
+            snapshotPlaybackControlEnabled = replayControlEnabled;
+            snapshotPlaybackFacingLeft = replayFacingLeft;
+        }
+
+        private void UpdateSnapshotPlayback()
+        {
+            ClearExternalInput();
+
+            var current = (Vector2)transform.position;
+            var blend = snapshotPlaybackImmediate ? 1f : 1f - Mathf.Exp(-24f * Time.deltaTime);
+            var next = Vector2.Lerp(current, snapshotPlaybackTarget, blend);
+
+            Teleport(new Vector3(next.x, next.y, transform.position.z));
+            velocity = snapshotPlaybackVelocity;
+            jumpState = snapshotPlaybackJumpState;
+            controlEnabled = snapshotPlaybackControlEnabled;
+            snapshotPlaybackImmediate = false;
+
+            if (animator != null)
+            {
+                animator.SetBool("grounded", jumpState == JumpState.Grounded || jumpState == JumpState.Landed);
+                animator.SetFloat("velocityX", Mathf.Abs(snapshotPlaybackVelocity.x) / maxSpeed);
+            }
+
+            if (spriteRenderer != null)
+                spriteRenderer.flipX = snapshotPlaybackFacingLeft;
+        }
+
+        private static JumpState ClampJumpState(int replayJumpState)
+        {
+            if (replayJumpState < 0 || replayJumpState > (int)JumpState.Landed)
+                return JumpState.Grounded;
+
+            return (JumpState)replayJumpState;
         }
 
         public enum JumpState
