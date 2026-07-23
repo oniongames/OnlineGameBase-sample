@@ -36,8 +36,7 @@ namespace Platformer.Gameplay
             target.animator.SetTrigger("hurt");
             target.animator.SetBool("dead", true);
 
-            if (target == model.player)
-                Simulation.Schedule<PlayerSpawn>(2).player = target;
+            Simulation.Schedule<PlayerSpawn>(2).player = target;
         }
 
         internal override void Cleanup()

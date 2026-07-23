@@ -25,9 +25,13 @@ namespace Platformer.Gameplay
             target.Teleport(model.spawnPoint.transform.position);
             target.jumpState = PlayerController.JumpState.Grounded;
             target.animator.SetBool("dead", false);
-            model.virtualCamera.Follow = target.transform;
-            model.virtualCamera.LookAt = target.transform;
-            Simulation.Schedule<EnablePlayerInput>(2f);
+            if (target == model.player)
+            {
+                model.virtualCamera.Follow = target.transform;
+                model.virtualCamera.LookAt = target.transform;
+            }
+
+            Simulation.Schedule<EnablePlayerInput>(2f).player = target;
         }
 
         internal override void Cleanup()
